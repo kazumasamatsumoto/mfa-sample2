@@ -116,7 +116,7 @@ function App() {
     const appVerifier = window.recaptchaVerifier;
     const multiFactorUser = multiFactor(auth.currentUser);
     const multiFactorSession = await multiFactorUser.getSession();
-    const phoneAuthProvider = new PhoneAuthProvider(auth.currentUser);
+    const phoneAuthProvider = new PhoneAuthProvider(auth);
     const phoneInfoOptions = {
       phoneNumber: phoneNumber,
       session: multiFactorSession,
