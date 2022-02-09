@@ -5,6 +5,7 @@ import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signOut,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -44,7 +45,7 @@ function App() {
     const phoneNumber = "+81" + mobile;
     console.log(phoneNumber);
     const appVerifier = window.recaptchaVerifier;
-    console.log(appVerifier)
+    console.log(appVerifier);
     signInWithPhoneNumber(auth, phoneNumber, appVerifier)
       .then((confirmationResult) => {
         // SMS sent. Prompt user to type the code from the message, then sign the
@@ -78,6 +79,18 @@ function App() {
         // ...
       });
   };
+
+  const logOut = () => {
+    signOut(auth)
+      .then(() => {
+        // Sign-out successful.
+        console.log("success");
+      })
+      .catch((error) => {
+        // An error happened.
+        console.log(error);
+      });
+  };
   return (
     <div className="App">
       <header className="App-header">
@@ -105,6 +118,7 @@ function App() {
           />
           <button type="submit">Submit</button>
         </form>
+        <button onClick={logOut}>Logout</button>
       </header>
     </div>
   );
