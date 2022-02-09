@@ -9,6 +9,7 @@ import {
   signOut,
   sendEmailVerification,
   PhoneAuthProvider,
+  multiFactor,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -25,7 +26,7 @@ const auth = getAuth();
 
 function App() {
   const [mobile, setMobile] = useState("");
-  const [otp, setOtp] = useState("");
+  // const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -36,7 +37,7 @@ function App() {
         size: "invisible",
         callback: (response) => {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
-          onSignInSubmit();
+          // onSignInSubmit();
           console.log("Recaptca varified", response);
         },
       },
@@ -66,24 +67,24 @@ function App() {
       });
   };
 
-  const onSubmitOTP = (e) => {
-    e.preventDefault();
-    const code = otp;
-    console.log(code);
-    window.confirmationResult
-      .confirm(code)
-      .then((result) => {
-        // User signed in successfully.
-        const user = result.user;
-        console.log(JSON.stringify(user));
-        alert("User is verified");
-        // ...
-      })
-      .catch((error) => {
-        // User couldn't sign in (bad verification code?)
-        // ...
-      });
-  };
+  // const onSubmitOTP = (e) => {
+  //   e.preventDefault();
+  //   const code = otp;
+  //   console.log(code);
+  //   window.confirmationResult
+  //     .confirm(code)
+  //     .then((result) => {
+  //       // User signed in successfully.
+  //       const user = result.user;
+  //       console.log(JSON.stringify(user));
+  //       alert("User is verified");
+  //       // ...
+  //     })
+  //     .catch((error) => {
+  //       // User couldn't sign in (bad verification code?)
+  //       // ...
+  //     });
+  // };
 
   const logOut = () => {
     signOut(auth)
@@ -110,22 +111,21 @@ function App() {
   };
 
   const twoFactorMethod = async () => {
+    configureCaptcha();
     const phoneNumber = "+81" + mobile;
-    const user = auth.currentUser;
-    user.multiFactor.getSession().then(function (multiFactorSession) {
-      const phoneInfoOptions = {
-        phoneNumber: phoneNumber,
-        session: multiFactorSession,
-      };
-      const phoneAuthProvider = new PhoneAuthProvider();
-
-      return phoneAuthProvider
-        .verifyPhoneNumber(phoneInfoOptions, window.recaptchaVerifier)
-        .then(function (verificationId) {
-          alert("Code sent to your phone!");
-          console.log(verificationId, "success");
-        });
-    });
+    const appVerifier = window.recaptchaVerifier;
+    const multiFactorUser = multiFactor(auth.currentUser);
+    const multiFactorSession = await multiFactorUser.getSession();
+    const phoneAuthProvider = new PhoneAuthProvider(auth.currentUser);
+    const phoneInfoOptions = {
+      phoneNumber: phoneNumber,
+      session: multiFactorSession,
+    };
+    const verificationId = await phoneAuthProvider.verifyPhoneNumber(
+      phoneInfoOptions,
+      appVerifier
+    );
+    console.log(verificationId)
   };
 
   return (
@@ -145,6 +145,7 @@ function App() {
         />
         <button onClick={signInMethod}>Submit</button>
         <h2>アカウント２段階認証Form</h2>
+        <div id="sign-in-button"></div>
         <input
           type="number"
           name="mobile"
@@ -153,7 +154,7 @@ function App() {
           onChange={(e) => setMobile(e.target.value)}
         />
         <button onClick={twoFactorMethod}>Submit</button>
-        <h2>電話番号認証Form</h2>
+        {/* <h2>電話番号認証Form</h2>
         <form onSubmit={onSignInSubmit}>
           <div id="sign-in-button"></div>
           <input
@@ -164,9 +165,9 @@ function App() {
             onChange={(e) => setMobile(e.target.value)}
           />
           <button type="submit">Submit</button>
-        </form>
+        </form> */}
 
-        <h2>ワンタイムパスワード</h2>
+        {/* <h2>ワンタイムパスワード</h2>
         <form onSubmit={onSubmitOTP}>
           <input
             type="number"
@@ -176,7 +177,7 @@ function App() {
             onChange={(e) => setOtp(e.target.value)}
           />
           <button type="submit">Submit</button>
-        </form>
+        </form> */}
         <h2>ログアウト</h2>
         <button onClick={logOut}>Logout</button>
       </header>
