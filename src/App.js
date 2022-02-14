@@ -11,6 +11,7 @@ import {
   multiFactor,
   signInWithEmailAndPassword,
   PhoneMultiFactorGenerator,
+  getMultiFactorResolver,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -30,6 +31,8 @@ function App() {
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
   const configureCaptcha = () => {
     window.recaptchaVerifier = new RecaptchaVerifier(
@@ -81,38 +84,45 @@ function App() {
       phoneNumber: phoneNumber,
       session: multiFactorSession,
     };
-    const verificationId = await phoneAuthProvider.verifyPhoneNumber(
+    window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
       phoneInfoOptions,
       appVerifier
     );
-    console.log(verificationId);
+    console.log(window.verificationId);
   };
 
   const verifyAction = async () => {
-    const firebaseCredentials = PhoneAuthProvider.credential(
-      window.verificationId,
-      otp
-    );
-    const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(firebaseCredentials);
-    const multiFactorUser = multiFactor(auth.currentUser);
-    await multiFactorUser.enroll(multiFactorAssertion)
-  }
+    try {
+      const firebaseCredentials = PhoneAuthProvider.credential(
+        window.verificationId,
+        otp
+      );
+      const multiFactorAssertion =
+        PhoneMultiFactorGenerator.assertion(firebaseCredentials);
+      const multiFactorUser = multiFactor(auth.currentUser);
+      await multiFactorUser.enroll(multiFactorAssertion);
+      console.log("success");
+    } catch (e) {
+      console.log(e, "error");
+    }
+  };
 
   const loginForm = async () => {
     configureCaptcha();
     try {
-      await signInWithEmailAndPassword(email, password);
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
     } catch (error) {
-      if (error.code === "auth/mutli-factor-auth-required") {
-        window.resolver = error.resolver;
+      if (error.code === "auth/multi-factor-auth-required") {
+        window.resolver = getMultiFactorResolver(auth, error);
       }
     }
+
     const phoneOptions = {
-      multiFactorHint: "+81 8061341310",
+      multiFactorHint: window.resolver.hints[0],
       session: window.resolver.session,
     };
 
-    const phoneAuthProvider = await PhoneAuthProvider();
+    const phoneAuthProvider = new PhoneAuthProvider(auth);
 
     window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
       phoneOptions,
@@ -166,14 +176,14 @@ function App() {
           type="email"
           placeholder="Email"
           required
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setLoginEmail(e.target.value)}
         />
         <input
           type="password"
           required
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => setLoginPassword(e.target.value)}
         />
-        <button onClick={loginForm}>Submit</button>
+        <button onClick={loginForm}>Login</button>
       </header>
     </div>
   );
