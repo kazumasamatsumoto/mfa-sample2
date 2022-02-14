@@ -5,11 +5,12 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   RecaptchaVerifier,
-  signInWithPhoneNumber,
   signOut,
   sendEmailVerification,
   PhoneAuthProvider,
   multiFactor,
+  signInWithEmailAndPassword,
+  PhoneMultiFactorGenerator,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -26,7 +27,7 @@ const auth = getAuth();
 
 function App() {
   const [mobile, setMobile] = useState("");
-  // const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -44,47 +45,6 @@ function App() {
       auth
     );
   };
-
-  const onSignInSubmit = (e) => {
-    e.preventDefault();
-    configureCaptcha();
-    const phoneNumber = "+81" + mobile;
-    console.log(phoneNumber);
-    const appVerifier = window.recaptchaVerifier;
-    console.log(appVerifier);
-    signInWithPhoneNumber(auth, phoneNumber, appVerifier)
-      .then((confirmationResult) => {
-        // SMS sent. Prompt user to type the code from the message, then sign the
-        // user in with confirmationResult.confirm(code).
-        window.confirmationResult = confirmationResult;
-        console.log("OTP has been sent");
-        // ...
-      })
-      .catch((error) => {
-        // Error; SMS not sent
-        // ...
-        console.log("SMS not sent", error);
-      });
-  };
-
-  // const onSubmitOTP = (e) => {
-  //   e.preventDefault();
-  //   const code = otp;
-  //   console.log(code);
-  //   window.confirmationResult
-  //     .confirm(code)
-  //     .then((result) => {
-  //       // User signed in successfully.
-  //       const user = result.user;
-  //       console.log(JSON.stringify(user));
-  //       alert("User is verified");
-  //       // ...
-  //     })
-  //     .catch((error) => {
-  //       // User couldn't sign in (bad verification code?)
-  //       // ...
-  //     });
-  // };
 
   const logOut = () => {
     signOut(auth)
@@ -125,7 +85,41 @@ function App() {
       phoneInfoOptions,
       appVerifier
     );
-    console.log(verificationId)
+    console.log(verificationId);
+  };
+
+  const verifyAction = async () => {
+    const firebaseCredentials = PhoneAuthProvider.credential(
+      window.verificationId,
+      otp
+    );
+    const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(firebaseCredentials);
+    const multiFactorUser = multiFactor(auth.currentUser);
+    await multiFactorUser.enroll(multiFactorAssertion)
+  }
+
+  const loginForm = async () => {
+    configureCaptcha();
+    try {
+      await signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      if (error.code === "auth/mutli-factor-auth-required") {
+        window.resolver = error.resolver;
+      }
+    }
+    const phoneOptions = {
+      multiFactorHint: "+81 8061341310",
+      session: window.resolver.session,
+    };
+
+    const phoneAuthProvider = await PhoneAuthProvider();
+
+    window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
+      phoneOptions,
+      window.recaptchaVerifier
+    );
+
+    alert("Code has been sent to your phone");
   };
 
   return (
@@ -154,32 +148,32 @@ function App() {
           onChange={(e) => setMobile(e.target.value)}
         />
         <button onClick={twoFactorMethod}>Submit</button>
-        {/* <h2>電話番号認証Form</h2>
-        <form onSubmit={onSignInSubmit}>
-          <div id="sign-in-button"></div>
-          <input
-            type="number"
-            name="mobile"
-            placeholder="Mobile number"
-            required
-            onChange={(e) => setMobile(e.target.value)}
-          />
-          <button type="submit">Submit</button>
-        </form> */}
-
-        {/* <h2>ワンタイムパスワード</h2>
-        <form onSubmit={onSubmitOTP}>
-          <input
-            type="number"
-            name="otp"
-            placeholder="OTP Number"
-            required
-            onChange={(e) => setOtp(e.target.value)}
-          />
-          <button type="submit">Submit</button>
-        </form> */}
+        <h2>認証コード入力</h2>
+        <div id="sign-in-button"></div>
+        <input
+          type="number"
+          name="verify"
+          placeholder="verify number"
+          required
+          onChange={(e) => setOtp(e.target.value)}
+        />
+        <button onClick={verifyAction}>Submit</button>
         <h2>ログアウト</h2>
         <button onClick={logOut}>Logout</button>
+        <h2>ログインフォーム</h2>
+        <div id="sign-in-button"></div>
+        <input
+          type="email"
+          placeholder="Email"
+          required
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          required
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={loginForm}>Submit</button>
       </header>
     </div>
   );
