@@ -33,6 +33,7 @@ function App() {
   const [password, setPassword] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [loginOpt, setLoginOpt] = useState("");
 
   const configureCaptcha = () => {
     window.recaptchaVerifier = new RecaptchaVerifier(
@@ -132,6 +133,22 @@ function App() {
     alert("Code has been sent to your phone");
   };
 
+  const loginVerifyAction = async () => {
+    try {
+      const firebaseCredentials = PhoneAuthProvider.credential(
+        window.verificationId,
+        loginOpt
+      );
+      const multiFactorAssertion =
+        PhoneMultiFactorGenerator.assertion(firebaseCredentials);
+      const credentials = await window.resolver.resolveSignIn(multiFactorAssertion);
+      console.log(credentials)
+      console.log("success");
+    } catch (e) {
+      console.log(e, "error");
+    }
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -184,6 +201,16 @@ function App() {
           onChange={(e) => setLoginPassword(e.target.value)}
         />
         <button onClick={loginForm}>Login</button>
+        <h2>ログイン認証コード入力</h2>
+        <div id="sign-in-button"></div>
+        <input
+          type="number"
+          name="verify"
+          placeholder="verify number"
+          required
+          onChange={(e) => setLoginOpt(e.target.value)}
+        />
+        <button onClick={loginVerifyAction}>Submit</button>
       </header>
     </div>
   );
