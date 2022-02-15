@@ -7,7 +7,13 @@ import { twoFactorMethod } from "./firebase/twoFactor.js";
 import { verifyAction } from "./firebase/verifyAction.js";
 import { loginForm } from "./firebase/login.js";
 import { loginVerifyAction } from "./firebase/loginVerifyAction.js";
-import { onAuthStateChanged } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  getMultiFactorResolver,
+  PhoneAuthProvider,
+} from "firebase/auth";
 import { auth } from "./firebase/firebase.js";
 
 onAuthStateChanged(auth, (user) => {
@@ -28,6 +34,40 @@ function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginOpt, setLoginOpt] = useState("");
 
+  const provider = new GoogleAuthProvider();
+
+  async function googleLogin() {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential.accessToken;
+        // The signed-in user info.
+        const user = result.user;
+        console.log(token, user, "signIn");
+        // ...
+      })
+      .catch(async (error) => {
+        if (error.code === "auth/multi-factor-auth-required") {
+          window.resolver = getMultiFactorResolver(auth, error);
+
+          const phoneOptions = {
+            multiFactorHint: window.resolver.hints[0],
+            session: window.resolver.session,
+          };
+
+          const phoneAuthProvider = new PhoneAuthProvider(auth);
+
+          window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
+            phoneOptions,
+            window.recaptchaVerifier
+          );
+
+          alert("Code has been sent to your phone");
+        }
+      });
+  }
+
   return (
     <div className="App">
       <h4>アカウント作成Form</h4>
@@ -46,6 +86,8 @@ function App() {
       <button onClick={() => signInMethod(email, password)}>
         アカウント作成
       </button>
+      <h4>Googleログイン</h4>
+      <button onClick={() => googleLogin()}>アカウント作成</button>
       <h4>アカウント２段階認証Form</h4>
       <h4>電話番号を入力すると認証コードが届きます。0を抜いてください</h4>
       <div id="sign-in-button"></div>
