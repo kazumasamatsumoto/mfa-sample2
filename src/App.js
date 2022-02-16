@@ -60,7 +60,7 @@ function App() {
 
         const phoneAuthProvider = new PhoneAuthProvider(auth);
 
-        await phoneAuthProvider.verifyPhoneNumber(
+        window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
           phoneOptions,
           window.recaptchaVerifier
         );
