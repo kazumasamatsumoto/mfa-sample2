@@ -7,6 +7,7 @@ import { twoFactorMethod } from "./firebase/twoFactor.js";
 import { verifyAction } from "./firebase/verifyAction.js";
 import { loginForm } from "./firebase/login.js";
 import { loginVerifyAction } from "./firebase/loginVerifyAction.js";
+import { configureCaptcha } from "./firebase/configureCaptcha.js";
 import {
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -17,11 +18,11 @@ import {
 import { auth } from "./firebase/firebase.js";
 
 onAuthStateChanged(auth, (user) => {
-  console.debug("onAuthStateChanged");
+  console.log("onAuthStateChanged");
   if (user) {
-    console.debug("signIn");
+    console.log("signIn");
   } else {
-    console.debug("signOut");
+    console.log("signOut");
   }
 });
 
@@ -37,6 +38,7 @@ function App() {
   const provider = new GoogleAuthProvider();
 
   async function googleLogin() {
+    configureCaptcha();
     signInWithPopup(auth, provider)
       .then((result) => {
         // This gives you a Google Access Token. You can use it to access the Google API.
@@ -50,21 +52,20 @@ function App() {
       .catch(async (error) => {
         if (error.code === "auth/multi-factor-auth-required") {
           window.resolver = getMultiFactorResolver(auth, error);
-
-          const phoneOptions = {
-            multiFactorHint: window.resolver.hints[0],
-            session: window.resolver.session,
-          };
-
-          const phoneAuthProvider = new PhoneAuthProvider(auth);
-
-          window.verificationId = await phoneAuthProvider.verifyPhoneNumber(
-            phoneOptions,
-            window.recaptchaVerifier
-          );
-
-          alert("Code has been sent to your phone");
         }
+        const phoneOptions = {
+          multiFactorHint: window.resolver.hints[0],
+          session: window.resolver.session,
+        };
+
+        const phoneAuthProvider = new PhoneAuthProvider(auth);
+
+        await phoneAuthProvider.verifyPhoneNumber(
+          phoneOptions,
+          window.recaptchaVerifier
+        );
+
+        alert("Code has been sent to your phone");
       });
   }
 
